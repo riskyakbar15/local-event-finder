@@ -20,7 +20,7 @@ FIREBASE_APP_ID=your_app_id
 
 - Use a tool like `dotenv` or configure your bundler to expose these to `process.env` when running locally.
 
-2. Expo `app.json` / `app.config.js` (recommended for Expo dev)
+1. Expo `app.json` / `app.config.js` (recommended for Expo dev)
 
 - In `app.json` add your secrets under `expo.extra`:
 
@@ -43,7 +43,7 @@ FIREBASE_APP_ID=your_app_id
 
 - These values will be available at runtime via `Constants.expoConfig.extra` and are used by `src/config/firebase.ts`.
 
-3. EAS Secrets (production)
+1. EAS Secrets (production)
 
 - Use `eas secret:create` to store secrets for your project and reference them in `app.config.js` or CI.
 
