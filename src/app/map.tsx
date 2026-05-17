@@ -1,7 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
-import { useLocation } from '@/features/location/useLocation';
+import { useLocation } from "@/features/location/useLocation";
+import React, { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MapView, { Marker, Region } from "react-native-maps";
 
 export default function MapScreen() {
   const { location, errorMsg } = useLocation(true);
@@ -23,9 +29,20 @@ export default function MapScreen() {
   const markers = useMemo(() => {
     // Placeholder: events will be loaded from Firestore later.
     // For now show only user location as a marker.
-    if (!userRegion) return [] as { id: string; latitude: number; longitude: number; title: string }[];
+    if (!userRegion)
+      return [] as {
+        id: string;
+        latitude: number;
+        longitude: number;
+        title: string;
+      }[];
     return [
-      { id: 'me', latitude: userRegion.latitude, longitude: userRegion.longitude, title: 'You are here' },
+      {
+        id: "me",
+        latitude: userRegion.latitude,
+        longitude: userRegion.longitude,
+        title: "You are here",
+      },
     ];
   }, [userRegion]);
 
@@ -48,9 +65,18 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} initialRegion={userRegion} region={userRegion} showsUserLocation={true}>
+      <MapView
+        style={styles.map}
+        initialRegion={userRegion}
+        region={userRegion}
+        showsUserLocation={true}
+      >
         {markers.map((m) => (
-          <Marker key={m.id} coordinate={{ latitude: m.latitude, longitude: m.longitude }} title={m.title} />
+          <Marker
+            key={m.id}
+            coordinate={{ latitude: m.latitude, longitude: m.longitude }}
+            title={m.title}
+          />
         ))}
       </MapView>
 
@@ -60,7 +86,8 @@ export default function MapScreen() {
           onPress={() => {
             // recenter to current location
             if (userRegion) setUserRegion({ ...userRegion });
-          }}>
+          }}
+        >
           <Text style={styles.fabText}>Center</Text>
         </TouchableOpacity>
       </View>
@@ -71,8 +98,13 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  fabContainer: { position: 'absolute', right: 16, bottom: 24 },
-  fab: { backgroundColor: '#1a73e8', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 24 },
-  fabText: { color: 'white', fontWeight: '600' },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  fabContainer: { position: "absolute", right: 16, bottom: 24 },
+  fab: {
+    backgroundColor: "#1a73e8",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 24,
+  },
+  fabText: { color: "white", fontWeight: "600" },
 });

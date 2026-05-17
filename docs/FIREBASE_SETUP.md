@@ -4,11 +4,12 @@ This document explains how to provide Firebase credentials to the app during dev
 
 Options
 
-1) Local `.env` (development)
+1. Local `.env` (development)
+
 - Create a file named `.env` in the project root (do NOT commit it).
 - Fill the variables listed in `.env.example`:
 
-```
+```env
 FIREBASE_API_KEY=your_firebase_api_key
 FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 FIREBASE_PROJECT_ID=your_project_id
@@ -19,7 +20,8 @@ FIREBASE_APP_ID=your_app_id
 
 - Use a tool like `dotenv` or configure your bundler to expose these to `process.env` when running locally.
 
-2) Expo `app.json` / `app.config.js` (recommended for Expo dev)
+2. Expo `app.json` / `app.config.js` (recommended for Expo dev)
+
 - In `app.json` add your secrets under `expo.extra`:
 
 ```json
@@ -41,7 +43,8 @@ FIREBASE_APP_ID=your_app_id
 
 - These values will be available at runtime via `Constants.expoConfig.extra` and are used by `src/config/firebase.ts`.
 
-3) EAS Secrets (production)
+3. EAS Secrets (production)
+
 - Use `eas secret:create` to store secrets for your project and reference them in `app.config.js` or CI.
 
 Runtime check
