@@ -7,8 +7,11 @@ import Constants from "expo-constants";
 // Firebase config loader
 // Priority: process.env -> Expo config extra (Constants.expoConfig.extra) -> empty string
 const getEnv = (key: string) => {
-  const fromProcess = (process && (process.env as any)[key]) as string | undefined;
-  const fromExpo = (Constants.expoConfig && (Constants.expoConfig.extra as any)?.[key]) as string | undefined;
+  const fromProcess = (process && (process.env as any)[key]) as
+    | string
+    | undefined;
+  const fromExpo = (Constants.expoConfig &&
+    (Constants.expoConfig.extra as any)?.[key]) as string | undefined;
   return fromProcess ?? fromExpo ?? "";
 };
 
