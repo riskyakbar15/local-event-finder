@@ -1,3 +1,4 @@
+import useEvents from "@/features/events/useEvents";
 import { useLocation } from "@/features/location/useLocation";
 import React, { useMemo, useState } from "react";
 import {
@@ -7,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Callout, Marker, Region } from "react-native-maps";
 
 export default function MapScreen() {
   const { location, errorMsg } = useLocation(true);
@@ -26,25 +27,35 @@ export default function MapScreen() {
     }
   }, [location]);
 
+  const { events } = useEvents();
+
   const markers = useMemo(() => {
-    // Placeholder: events will be loaded from Firestore later.
-    // For now show only user location as a marker.
-    if (!userRegion)
-      return [] as {
-        id: string;
-        latitude: number;
-        longitude: number;
-        title: string;
-      }[];
-    return [
-      {
+    const list: {
+      id: string;
+      latitude: number;
+      longitude: number;
+      title: string;
+    }[] = [];
+    if (userRegion) {
+      list.push({
         id: "me",
         latitude: userRegion.latitude,
         longitude: userRegion.longitude,
         title: "You are here",
-      },
-    ];
-  }, [userRegion]);
+      });
+    }
+    events.forEach((e) => {
+      if (e.location) {
+        list.push({
+          id: e.id,
+          latitude: e.location.latitude,
+          longitude: e.location.longitude,
+          title: e.title,
+        });
+      }
+    });
+    return list;
+  }, [userRegion, events]);
 
   if (errorMsg) {
     return (
@@ -76,7 +87,13 @@ export default function MapScreen() {
             key={m.id}
             coordinate={{ latitude: m.latitude, longitude: m.longitude }}
             title={m.title}
-          />
+          >
+            <Callout>
+              <View style={{ width: 200 }}>
+                <Text style={{ fontWeight: "700" }}>{m.title}</Text>
+              </View>
+            </Callout>
+          </Marker>
         ))}
       </MapView>
 
