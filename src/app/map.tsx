@@ -117,8 +117,8 @@ export default function MapScreen() {
         <TouchableOpacity
           style={[styles.fab, { marginTop: 12, backgroundColor: "#24A148" }]}
           onPress={() => {
-            // navigate to create-event route (use object form to satisfy typed router)
-            router.push({ pathname: "/create-event" });
+            // navigate to create-event route (cast to any to satisfy typed router union)
+            router.push({ pathname: "/create-event" } as any);
           }}
         >
           <Text style={styles.fabText}>Add</Text>
