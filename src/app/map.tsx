@@ -29,7 +29,12 @@ export default function MapScreen() {
     }
   }, [location]);
 
-  const { events } = useEvents();
+  const { events } = useEvents({
+    center: userRegion
+      ? { latitude: userRegion.latitude, longitude: userRegion.longitude }
+      : undefined,
+    radiusMeters: 5000,
+  });
 
   const markers = useMemo(() => {
     const list: {
