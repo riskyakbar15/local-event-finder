@@ -1,5 +1,6 @@
 import useEvents from "@/features/events/useEvents";
 import { useLocation } from "@/features/location/useLocation";
+import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import MapView, { Callout, Marker, Region } from "react-native-maps";
 export default function MapScreen() {
   const { location, errorMsg } = useLocation(true);
   const [userRegion, setUserRegion] = useState<Region | null>(null);
+  const router = useRouter();
 
   React.useEffect(() => {
     if (location?.coords) {
@@ -106,6 +108,15 @@ export default function MapScreen() {
           }}
         >
           <Text style={styles.fabText}>Center</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.fab, { marginTop: 12, backgroundColor: "#24A148" }]}
+          onPress={() => {
+            // navigate to create-event route
+            router.push("/create-event");
+          }}
+        >
+          <Text style={styles.fabText}>Add</Text>
         </TouchableOpacity>
       </View>
     </View>
