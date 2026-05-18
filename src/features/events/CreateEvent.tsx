@@ -1,15 +1,55 @@
-import { db } from "@/config/firebase";
+import { db, storage } from "@/config/firebase";
 import { useAuth } from "@/features/auth/useAuth";
 import { useLocation } from "@/features/location/useLocation";
+import * as ImagePicker from "expo-image-picker";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref as storageRef,
+  uploadBytes,
+} from "firebase/storage";
 import React, { useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Button,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 export default function CreateEvent() {
   const { user } = useAuth();
   const { location } = useLocation(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const pickImage = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Permission to access photos is required to attach an image.",
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.cancelled) {
+        setImageUri(result.uri);
+      }
+    } catch (e) {
+      console.error("image pick error", e);
+    }
+  };
 
   const submit = async () => {
     if (!user)
@@ -26,19 +66,34 @@ export default function CreateEvent() {
       : null;
 
     try {
+      setUploading(true);
+      let imageUrl: string | null = null;
+      if (imageUri) {
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        const path = `events/${user.uid}/${Date.now()}.jpg`;
+        const ref = storageRef(storage, path);
+        await uploadBytes(ref, blob);
+        imageUrl = await getDownloadURL(ref);
+      }
+
       await addDoc(collection(db, "events"), {
         title,
         description,
         organizerId: user.uid,
         location: loc,
+        imageUrl,
         createdAt: serverTimestamp(),
       });
       setTitle("");
       setDescription("");
+      setImageUri(null);
       Alert.alert("Success", "Event created");
     } catch (e) {
       console.error("create event error", e);
       Alert.alert("Error", "Failed to create event");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -61,7 +116,25 @@ export default function CreateEvent() {
         multiline
       />
 
-      <Button title="Create Event (uses current location)" onPress={submit} />
+      <Button title="Pick Image (optional)" onPress={pickImage} />
+      {imageUri ? (
+        <Image
+          source={{ uri: imageUri }}
+          style={{
+            width: "100%",
+            height: 180,
+            marginVertical: 12,
+            borderRadius: 8,
+          }}
+        />
+      ) : null}
+      <Button
+        title={
+          uploading ? "Creating..." : "Create Event (uses current location)"
+        }
+        onPress={submit}
+        disabled={uploading}
+      />
     </View>
   );
 }
