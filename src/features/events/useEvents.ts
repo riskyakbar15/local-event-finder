@@ -45,16 +45,13 @@ export const useEvents = (opts?: {
       const minLng = lng - lngDelta;
       const maxLng = lng + lngDelta;
 
-      // Server-side bounding box where filters — note: Firestore may require a composite index for
-      // multiple range filters on different fields. If index is missing Firestore will return an error
-      // with a direct link to create the required index.
+      // Server-side bounding box: we only apply latitude range on the server because
+      // Firestore does not support range filters on multiple different fields in a single query.
+      // This reduces results; longitude filtering and precise radius check are applied client-side.
       q = query(
         col,
         where("location.latitude", ">=", minLat),
         where("location.latitude", "<=", maxLat),
-        where("location.longitude", ">=", minLng),
-        where("location.longitude", "<=", maxLng),
-        orderBy("createdAt", "desc"),
       );
     } else {
       q = query(col, orderBy("createdAt", "desc"));
@@ -122,5 +119,7 @@ export const useEvents = (opts?: {
 
   return { events };
 };
+
+export default useEvents;
 
 export default useEvents;
