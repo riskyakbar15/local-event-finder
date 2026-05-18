@@ -38,12 +38,20 @@ export default function CreateEvent() {
         );
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const result: any = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
       });
-      if (!result.cancelled) {
+
+      // Support both old (result.cancelled / result.uri) and new (result.canceled / result.assets)
+      if (
+        result?.canceled === false &&
+        Array.isArray(result?.assets) &&
+        result.assets.length
+      ) {
+        setImageUri(result.assets[0].uri);
+      } else if (result?.cancelled === false && result?.uri) {
         setImageUri(result.uri);
       }
     } catch (e) {
