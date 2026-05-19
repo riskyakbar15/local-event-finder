@@ -38,21 +38,14 @@ export default function CreateEvent() {
         );
         return;
       }
-      const result: any = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
         allowsEditing: true,
         quality: 0.8,
       });
 
-      // Support both old (result.cancelled / result.uri) and new (result.canceled / result.assets)
-      if (
-        result?.canceled === false &&
-        Array.isArray(result?.assets) &&
-        result.assets.length
-      ) {
+      if (!result.canceled && result.assets.length > 0) {
         setImageUri(result.assets[0].uri);
-      } else if (result?.cancelled === false && result?.uri) {
-        setImageUri(result.uri);
       }
     } catch (e) {
       console.error("image pick error", e);
@@ -66,6 +59,13 @@ export default function CreateEvent() {
         "Please sign in to create an event.",
       );
     if (!title) return Alert.alert("Validation", "Title is required.");
+    if (!db || !storage) {
+      return Alert.alert(
+        "Firebase setup required",
+        "Add Firebase credentials before creating events.",
+      );
+    }
+
     const loc = location?.coords
       ? {
           latitude: location.coords.latitude,

@@ -34,6 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -42,11 +47,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const signInWithGoogle = async () => {
+    if (!auth || !db) {
+      console.warn("Firebase is not configured. Skipping Google sign-in.");
+      return;
+    }
+
     try {
       setLoading(true);
       const CLIENT_ID =
         process.env.EXPO_GOOGLE_CLIENT_ID ?? "<GOOGLE_OAUTH_CLIENT_ID>"; // replace
-      const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: "localeventfinder",
+      });
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
         redirectUri,
@@ -99,6 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const signOut = async () => {
+    if (!auth) {
+      return;
+    }
+
     await firebaseSignOut(auth);
   };
 

@@ -23,11 +23,21 @@ const useEvents = (opts?: {
   radiusMeters?: number; // radius in meters
 }) => {
   const [events, setEvents] = useState<EventItem[]>([]);
+  const centerLatitude = opts?.center?.latitude;
+  const centerLongitude = opts?.center?.longitude;
+  const radiusMeters = opts?.radiusMeters;
 
   useEffect(() => {
-    const col = collection(db, "events");
+    if (!db) {
+      setEvents([]);
+      return;
+    }
 
-    const { center, radiusMeters } = opts ?? {};
+    const col = collection(db, "events");
+    const center =
+      centerLatitude !== undefined && centerLongitude !== undefined
+        ? { latitude: centerLatitude, longitude: centerLongitude }
+        : undefined;
 
     // If center provided, compute bounding box to reduce server-side results.
     let q;
@@ -108,7 +118,7 @@ const useEvents = (opts?: {
     });
 
     return () => unsub();
-  }, [opts]);
+  }, [centerLatitude, centerLongitude, radiusMeters]);
 
   return { events };
 };

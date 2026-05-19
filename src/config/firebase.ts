@@ -1,8 +1,8 @@
-import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 import Constants from "expo-constants";
+import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
+import { Auth, getAuth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
+import { FirebaseStorage, getStorage } from "firebase/storage";
 
 // Firebase config loader
 // Priority: process.env -> Expo config extra (Constants.expoConfig.extra) -> empty string
@@ -24,15 +24,6 @@ const firebaseConfig = {
   appId: getEnv("FIREBASE_APP_ID"),
 };
 
-// Initialize Firebase app if not already initialized
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-export { app, auth, db, storage, firebaseConfig };
-
 // Optional runtime check helper
 export const isFirebaseConfigured = () => {
   return !!(
@@ -41,3 +32,17 @@ export const isFirebaseConfigured = () => {
     firebaseConfig.appId
   );
 };
+
+// Initialize Firebase only when the app has usable credentials. This keeps local
+// development and static web export from crashing before credentials are added.
+const app: FirebaseApp | null = isFirebaseConfigured()
+  ? getApps().length
+    ? getApp()
+    : initializeApp(firebaseConfig)
+  : null;
+
+const auth: Auth | null = app ? getAuth(app) : null;
+const db: Firestore | null = app ? getFirestore(app) : null;
+const storage: FirebaseStorage | null = app ? getStorage(app) : null;
+
+export { app, auth, db, storage, firebaseConfig };
