@@ -12,7 +12,7 @@ import {
 import MapView, { Callout, Marker, Region } from "react-native-maps";
 
 export default function MapScreen() {
-  const { location, errorMsg } = useLocation(true);
+  const { location, errorMsg, refreshLocation } = useLocation(true);
   const [userRegion, setUserRegion] = useState<Region | null>(null);
   const router = useRouter();
 
@@ -108,8 +108,8 @@ export default function MapScreen() {
         <TouchableOpacity
           style={styles.fab}
           onPress={() => {
-            // recenter to current location
-            if (userRegion) setUserRegion({ ...userRegion });
+            // refresh and recenter using the latest location
+            void refreshLocation();
           }}
         >
           <Text style={styles.fabText}>Center</Text>

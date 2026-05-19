@@ -52,10 +52,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         redirectUri,
       )}&response_type=id_token&scope=profile%20email&nonce=${Math.random().toString(36).substring(2, 15)}`;
 
-      const result = await AuthSession.startAsync({ authUrl });
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri,
+      );
 
-      if (result.type === "success" && (result as any).params?.id_token) {
-        const idToken = (result as any).params.id_token;
+      if (result.type === "success") {
+        const returnedUrl = result.url;
+        const idToken = new URL(returnedUrl).hash
+          .replace(/^#/, "")
+          .split("&")
+          .map((pair) => pair.split("="))
+          .reduce<Record<string, string>>((acc, [key, value]) => {
+            if (key)
+              acc[decodeURIComponent(key)] = decodeURIComponent(value ?? "");
+            return acc;
+          }, {}).id_token;
+
+        if (!idToken) {
+          throw new Error("Google sign-in did not return an id_token");
+        }
+
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(auth, credential);
 

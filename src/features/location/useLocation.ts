@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type LocationState = {
   coords?: Location.LocationObjectCoords | null;
@@ -12,48 +12,57 @@ export const useLocation = (watch = true) => {
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+  const mountedRef = useRef(true);
+
+  const refreshLocation = useCallback(async () => {
+    try {
+      setErrorMsg(null);
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
+
+      const last = await Location.getLastKnownPositionAsync();
+      if (mountedRef.current && last) setLocation(last);
+
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+      });
+      if (mountedRef.current && current) setLocation(current);
+
+      if (watch) {
+        if (subscriptionRef.current) {
+          subscriptionRef.current.remove();
+          subscriptionRef.current = null;
+        }
+
+        subscriptionRef.current = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Highest, distanceInterval: 10 },
+          (pos) => {
+            if (mountedRef.current) setLocation(pos);
+          },
+        );
+      }
+    } catch (e) {
+      console.error("useLocation error", e);
+      setErrorMsg(String(e));
+    }
+  }, [watch]);
 
   useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setErrorMsg("Permission to access location was denied");
-          return;
-        }
-
-        const last = await Location.getLastKnownPositionAsync();
-        if (mounted && last) setLocation(last);
-
-        const current = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Highest,
-        });
-        if (mounted && current) setLocation(current);
-
-        if (watch) {
-          subscriptionRef.current = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.Highest, distanceInterval: 10 },
-            (pos) => {
-              if (mounted) setLocation(pos);
-            },
-          );
-        }
-      } catch (e) {
-        console.error("useLocation error", e);
-        setErrorMsg(String(e));
-      }
-    })();
+    mountedRef.current = true;
+    void refreshLocation();
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current.remove();
         subscriptionRef.current = null;
       }
     };
-  }, [watch]);
+  }, [refreshLocation]);
 
-  return { location, errorMsg };
+  return { location, errorMsg, refreshLocation };
 };

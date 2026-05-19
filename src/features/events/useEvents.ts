@@ -18,7 +18,7 @@ export type EventItem = {
   startAt?: string;
 };
 
-export const useEvents = (opts?: {
+const useEvents = (opts?: {
   center?: { latitude: number; longitude: number };
   radiusMeters?: number; // radius in meters
 }) => {
@@ -32,18 +32,11 @@ export const useEvents = (opts?: {
     // If center provided, compute bounding box to reduce server-side results.
     let q;
     if (center && radiusMeters && isFinite(radiusMeters) && radiusMeters > 0) {
-      const toRad = (deg: number) => (deg * Math.PI) / 180;
-      const toDeg = (rad: number) => (rad * 180) / Math.PI;
       const earth = 6371000; // meters
       const lat = center.latitude;
-      const lng = center.longitude;
-      const latDelta = toDeg(radiusMeters / earth);
-      const lngDelta = toDeg(radiusMeters / earth / Math.cos(toRad(lat)));
-
+      const latDelta = (radiusMeters / earth) * (180 / Math.PI);
       const minLat = lat - latDelta;
       const maxLat = lat + latDelta;
-      const minLng = lng - lngDelta;
-      const maxLng = lng + lngDelta;
 
       // Server-side bounding box: we only apply latitude range on the server because
       // Firestore does not support range filters on multiple different fields in a single query.
@@ -115,11 +108,9 @@ export const useEvents = (opts?: {
     });
 
     return () => unsub();
-  }, [opts?.center?.latitude, opts?.center?.longitude, opts?.radiusMeters]);
+  }, [opts]);
 
   return { events };
 };
-
-export default useEvents;
 
 export default useEvents;
