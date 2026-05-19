@@ -4,8 +4,10 @@ import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,6 +16,9 @@ import MapView, { Callout, Marker, Region } from "react-native-maps";
 export default function MapScreen() {
   const { location, errorMsg, refreshLocation, refreshing } = useLocation(true);
   const [userRegion, setUserRegion] = useState<Region | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualLat, setManualLat] = useState<string>("");
+  const [manualLng, setManualLng] = useState<string>("");
   const router = useRouter();
 
   React.useEffect(() => {
@@ -73,10 +78,77 @@ export default function MapScreen() {
   }
 
   if (!userRegion) {
+    // If permission denied or other error, offer manual fallback
+    if (errorMsg) {
+      return (
+        <View style={styles.center}>
+          <Text style={{ marginBottom: 8 }}>{errorMsg}</Text>
+          <TouchableOpacity
+            style={[styles.fab, { marginBottom: 8 }]}
+            onPress={() => Linking.openSettings()}
+          >
+            <Text style={styles.fabText}>Open Location Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.fab, { marginBottom: 8 }]}
+            onPress={() => setShowManualForm((s) => !s)}
+          >
+            <Text style={styles.fabText}>
+              {showManualForm ? "Cancel" : "Set Manual Location"}
+            </Text>
+          </TouchableOpacity>
+
+          {showManualForm ? (
+            <View style={{ width: "90%", marginTop: 12 }}>
+              <TextInput
+                placeholder="Latitude"
+                keyboardType="numeric"
+                value={manualLat}
+                onChangeText={setManualLat}
+                style={styles.input}
+              />
+              <TextInput
+                placeholder="Longitude"
+                keyboardType="numeric"
+                value={manualLng}
+                onChangeText={setManualLng}
+                style={styles.input}
+              />
+              <TouchableOpacity
+                style={[styles.fab, { marginTop: 8 }]}
+                onPress={() => {
+                  const lat = parseFloat(manualLat);
+                  const lng = parseFloat(manualLng);
+                  if (isNaN(lat) || isNaN(lng)) {
+                    return;
+                  }
+                  const region: Region = {
+                    latitude: lat,
+                    longitude: lng,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                  };
+                  setUserRegion(region);
+                }}
+              >
+                <Text style={styles.fabText}>Use Manual Location</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      );
+    }
+
     return (
       <View style={styles.center}>
         <ActivityIndicator />
         <Text style={{ marginTop: 8 }}>Mendapatkan lokasi...</Text>
+        <TouchableOpacity
+          style={[styles.fab, { marginTop: 12 }]}
+          onPress={() => setShowManualForm(true)}
+        >
+          <Text style={styles.fabText}>Set Manual Location</Text>
+        </TouchableOpacity>
       </View>
     );
   }
