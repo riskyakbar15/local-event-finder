@@ -13,8 +13,10 @@ export const useLocation = (watch = true) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const mountedRef = useRef(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const refreshLocation = useCallback(async () => {
+    setRefreshing(true);
     try {
       setErrorMsg(null);
 
@@ -48,6 +50,8 @@ export const useLocation = (watch = true) => {
     } catch (e) {
       console.error("useLocation error", e);
       setErrorMsg(String(e));
+    } finally {
+      setRefreshing(false);
     }
   }, [watch]);
 
@@ -64,5 +68,5 @@ export const useLocation = (watch = true) => {
     };
   }, [refreshLocation]);
 
-  return { location, errorMsg, refreshLocation };
+  return { location, errorMsg, refreshLocation, refreshing };
 };

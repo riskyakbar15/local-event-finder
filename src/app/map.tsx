@@ -12,7 +12,7 @@ import {
 import MapView, { Callout, Marker, Region } from "react-native-maps";
 
 export default function MapScreen() {
-  const { location, errorMsg, refreshLocation } = useLocation(true);
+  const { location, errorMsg, refreshLocation, refreshing } = useLocation(true);
   const [userRegion, setUserRegion] = useState<Region | null>(null);
   const router = useRouter();
 
@@ -106,13 +106,18 @@ export default function MapScreen() {
 
       <View style={styles.fabContainer} pointerEvents="box-none">
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, refreshing ? { opacity: 0.7 } : undefined]}
           onPress={() => {
             // refresh and recenter using the latest location
             void refreshLocation();
           }}
+          disabled={refreshing}
         >
-          <Text style={styles.fabText}>Center</Text>
+          {refreshing ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.fabText}>Center</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.fab, { marginTop: 12, backgroundColor: "#24A148" }]}
