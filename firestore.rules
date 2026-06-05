@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: a signed-in request
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper: the request belongs to the given user id
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // User profiles: readable by anyone, writable only by the owner.
+    match /users/{uid} {
+      allow read: if true;
+      allow create, update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // Events: publicly readable, but only authenticated users can create
+    // an event they own. Updates/deletes are restricted to the organizer.
+    match /events/{eventId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.organizerId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120;
+
+      allow update: if isSignedIn()
+        && resource.data.organizerId == request.auth.uid
+        && request.resource.data.organizerId == request.auth.uid;
+
+      allow delete: if isSignedIn()
+        && resource.data.organizerId == request.auth.uid;
+    }
+  }
+}
