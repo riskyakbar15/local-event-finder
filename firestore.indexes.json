@@ -1,0 +1,10 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "location.latitude", "order": "ASCENDING" }]
+    }
+  ],
+  "fieldOverrides": []
+}
