@@ -34,6 +34,20 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Local Event Finder uses your location to show events near you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Local Event Finder accesses your photos so you can attach an image to an event.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
