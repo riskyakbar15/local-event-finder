@@ -1,4 +1,4 @@
-import * as AuthSession from "expo-auth-session";
+import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import {
   signOut as firebaseSignOut,
@@ -7,7 +7,7 @@ import {
   signInWithCredential,
   User,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../../config/firebase";
 
@@ -16,6 +16,8 @@ WebBrowser.maybeCompleteAuthSession();
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
+  /** True when a Google client ID is configured and sign-in can be attempted. */
+  isAuthAvailable: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -23,6 +25,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
+  isAuthAvailable: false,
   signInWithGoogle: async () => {},
   signOut: async () => {},
 });
@@ -33,6 +36,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Google OAuth client IDs are read from public env vars. They are not secrets
+  // and are safe to expose to the client. PKCE, state and nonce are handled
+  // internally by the provider hook, which fixes the CSRF/nonce weaknesses of a
+  // hand-rolled OAuth URL.
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+
+  const isAuthAvailable = !!(webClientId || iosClientId || androidClientId);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId,
+    iosClientId,
+    androidClientId,
+  });
+
+  // Track auth state from Firebase.
   useEffect(() => {
     if (!auth) {
       setLoading(false);
@@ -46,50 +66,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return unsub;
   }, []);
 
-  const signInWithGoogle = async () => {
-    if (!auth || !db) {
-      console.warn("Firebase is not configured. Skipping Google sign-in.");
-      return;
-    }
+  // Exchange the Google id_token for a Firebase credential when the auth
+  // request completes successfully.
+  useEffect(() => {
+    const completeSignIn = async () => {
+      if (response?.type !== "success") {
+        return;
+      }
+      if (!auth || !db) {
+        console.warn("Firebase is not configured. Skipping Google sign-in.");
+        return;
+      }
 
-    try {
-      setLoading(true);
-      const CLIENT_ID =
-        process.env.EXPO_GOOGLE_CLIENT_ID ?? "<GOOGLE_OAUTH_CLIENT_ID>"; // replace
-      const redirectUri = AuthSession.makeRedirectUri({
-        scheme: "localeventfinder",
-      });
+      const idToken = response.params?.id_token;
+      if (!idToken) {
+        console.error("Google sign-in did not return an id_token");
+        return;
+      }
 
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
-        redirectUri,
-      )}&response_type=id_token&scope=profile%20email&nonce=${Math.random().toString(36).substring(2, 15)}`;
-
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        redirectUri,
-      );
-
-      if (result.type === "success") {
-        const returnedUrl = result.url;
-        const idToken = new URL(returnedUrl).hash
-          .replace(/^#/, "")
-          .split("&")
-          .map((pair) => pair.split("="))
-          .reduce<Record<string, string>>((acc, [key, value]) => {
-            if (key)
-              acc[decodeURIComponent(key)] = decodeURIComponent(value ?? "");
-            return acc;
-          }, {}).id_token;
-
-        if (!idToken) {
-          throw new Error("Google sign-in did not return an id_token");
-        }
-
+      try {
+        setLoading(true);
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(auth, credential);
 
-        if (auth.currentUser) {
-          const u = auth.currentUser;
+        const u = auth.currentUser;
+        if (u) {
           await setDoc(
             doc(db, "users", u.uid),
             {
@@ -97,29 +98,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               displayName: u.displayName,
               email: u.email,
               photoURL: u.photoURL,
-              lastSeen: new Date(),
+              lastSeen: serverTimestamp(),
             },
             { merge: true },
           );
         }
+      } catch (e) {
+        console.error("Google sign-in error", e);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error("Google sign-in error", e);
-    } finally {
-      setLoading(false);
+    };
+
+    void completeSignIn();
+  }, [response]);
+
+  const signInWithGoogle = async () => {
+    if (!isAuthAvailable) {
+      console.warn(
+        "No Google client ID configured. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (and/or platform-specific IDs).",
+      );
+      return;
     }
+    if (!request) {
+      // The auth request is still loading; ignore the tap.
+      return;
+    }
+    await promptAsync();
   };
 
   const signOut = async () => {
     if (!auth) {
       return;
     }
-
     await firebaseSignOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{ user, loading, isAuthAvailable, signInWithGoogle, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
