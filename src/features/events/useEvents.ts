@@ -16,6 +16,7 @@ export type EventItem = {
   organizerId?: string;
   location?: { latitude: number; longitude: number };
   startAt?: string;
+  imageUrl?: string;
 };
 
 const useEvents = (opts?: {
@@ -95,6 +96,7 @@ const useEvents = (opts?: {
               ? { latitude: loc.latitude, longitude: loc.longitude }
               : undefined,
             startAt: data.startAt ?? undefined,
+            imageUrl: data.imageUrl ?? undefined,
           } as EventItem;
         })
         .filter(Boolean);
