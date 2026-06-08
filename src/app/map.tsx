@@ -19,6 +19,8 @@ export default function MapScreen() {
   const [showManualForm, setShowManualForm] = useState(false);
   const [manualLat, setManualLat] = useState<string>("");
   const [manualLng, setManualLng] = useState<string>("");
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [radiusMeters, setRadiusMeters] = useState(5000);
   const router = useRouter();
 
   React.useEffect(() => {
@@ -38,7 +40,7 @@ export default function MapScreen() {
     center: userRegion
       ? { latitude: userRegion.latitude, longitude: userRegion.longitude }
       : undefined,
-    radiusMeters: 5000,
+    radiusMeters,
   });
 
   const markers = useMemo(() => {
@@ -121,8 +123,18 @@ export default function MapScreen() {
                 const lat = parseFloat(manualLat);
                 const lng = parseFloat(manualLng);
                 if (isNaN(lat) || isNaN(lng)) {
+                  setManualError(
+                    "Enter valid numbers for latitude and longitude.",
+                  );
                   return;
                 }
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                  setManualError(
+                    "Latitude must be -90..90 and longitude -180..180.",
+                  );
+                  return;
+                }
+                setManualError(null);
                 const region: Region = {
                   latitude: lat,
                   longitude: lng,
@@ -134,6 +146,9 @@ export default function MapScreen() {
             >
               <Text style={styles.fabText}>Use Manual Location</Text>
             </TouchableOpacity>
+            {manualError ? (
+              <Text style={styles.errorText}>{manualError}</Text>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -163,6 +178,40 @@ export default function MapScreen() {
         ))}
       </MapView>
 
+      {events.length === 0 ? (
+        <View style={styles.banner} pointerEvents="none">
+          <Text style={styles.bannerText}>
+            No events within {Math.round(radiusMeters / 1000)} km. Try a larger
+            radius or add one.
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={styles.radiusContainer} pointerEvents="box-none">
+        {[2000, 5000, 10000].map((r) => {
+          const active = r === radiusMeters;
+          return (
+            <TouchableOpacity
+              key={r}
+              onPress={() => setRadiusMeters(r)}
+              style={[styles.radiusChip, active && styles.radiusChipActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Search radius ${r / 1000} kilometers`}
+            >
+              <Text
+                style={[
+                  styles.radiusChipText,
+                  active && styles.radiusChipTextActive,
+                ]}
+              >
+                {r / 1000} km
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <View style={styles.fabContainer} pointerEvents="box-none">
         <TouchableOpacity
           style={[styles.fab, refreshing ? { opacity: 0.7 } : undefined]}
@@ -181,8 +230,7 @@ export default function MapScreen() {
         <TouchableOpacity
           style={[styles.fab, { marginTop: 12, backgroundColor: "#24A148" }]}
           onPress={() => {
-            // navigate to create-event route (cast to any to satisfy typed router union)
-            router.push({ pathname: "/create-event" } as any);
+            router.push("/create-event");
           }}
         >
           <Text style={styles.fabText}>Add</Text>
@@ -199,6 +247,36 @@ const styles = StyleSheet.create({
   statusText: { marginBottom: 8, marginTop: 8, textAlign: "center" },
   manualForm: { width: "90%", marginTop: 12 },
   fabContainer: { position: "absolute", right: 16, bottom: 24 },
+  radiusContainer: {
+    position: "absolute",
+    left: 16,
+    bottom: 24,
+    flexDirection: "row",
+    gap: 8,
+  },
+  radiusChip: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  radiusChipActive: { backgroundColor: "#1a73e8", borderColor: "#1a73e8" },
+  radiusChipText: { color: "#333", fontWeight: "600" },
+  radiusChipTextActive: { color: "white" },
+  banner: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  bannerText: { color: "white", textAlign: "center" },
+  errorText: { color: "#d32f2f", marginTop: 8 },
   fab: {
     backgroundColor: "#1a73e8",
     paddingVertical: 10,
